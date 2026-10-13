@@ -156,7 +156,63 @@ void *AtenderCliente (void *arguments)
 				mysql_free_result(resultado);	//Liberamos el resultado
 			}
 		}
-			
+		else if (codigo == 3) // consulta adria: el jugador encontro pistola?
+		{
+		    char usuario[30];
+		    strcpy(usuario, data);
+
+		    char consulta[400];
+		    sprintf(consulta, 
+		        "SELECT PartidaTable.Code "
+		        "FROM PlayerTable, PartidaTable, Relation "
+		        "WHERE PlayerTable.Name = '%s' "
+		        "AND PlayerTable.ID = Relation.PlayerID "
+		        "AND Relation.PartidaCode = PartidaTable.Code "
+		        "AND Relation.ZombieKilled = 1 "
+		        "AND PartidaTable.PistolaFound = 1", usuario);
+
+		    int err = mysql_query(conn, consulta);
+		    if (err == 0)
+		    {
+		        MYSQL_RES *resultado = mysql_store_result(conn);
+
+		        if (mysql_num_rows(resultado) == 0)
+		            sprintf(respuesta, "3/NO/El jugador %s no ha encontrado o usado pistola.", usuario);
+		        else
+		            sprintf(respuesta, "3/SI/Pistola encontrada.");
+		
+		        mysql_free_result(resultado);
+		    }
+		}
+		else if (codigo == 4) // consulta tomas: cuantos jugadores hay en la partida?
+		{
+		    char codigoPartida[10];
+		    strcpy(codigoPartida, data);
+		
+		    char consulta[300];
+		    sprintf(consulta, "SELECT COUNT(*) FROM Relation WHERE PartidaCode = '%s'", codigoPartida);
+		
+		    int err = mysql_query(conn, consulta);
+		    if (err != 0)
+		    {
+		        sprintf(respuesta, "4/Error al consultar: %u %s\n", mysql_errno(conn), mysql_error(conn));
+		    }
+		    else
+		    {
+		        MYSQL_RES *resultado = mysql_store_result(conn);
+		        MYSQL_ROW row = mysql_fetch_row(resultado);
+		
+		        if (row != NULL)
+		        {
+		            sprintf(respuesta, "4/%s", row[0]); 
+		        }
+		        else
+		        {
+		            sprintf(respuesta, "4/0");
+		        }
+		        mysql_free_result(resultado);
+		    }
+		}
 		//Escribimos la respuesta para el socket
 		if (codigo !=0)
 		{
