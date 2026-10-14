@@ -213,6 +213,41 @@ void *AtenderCliente (void *arguments)
 		        mysql_free_result(resultado);
 		    }
 		}
+		else if (codigo == 5) // consulta maroua: que jugador vivio mas tiempo en la partida X?
+		{
+		    char codigoPartida[10];
+		    strcpy(codigoPartida, data);
+		
+		    char consulta[400];
+		    sprintf(consulta, 
+		        "SELECT PlayerTable.Name, Relation.TiempoSobrevivido "
+		        "FROM PlayerTable, Relation "
+		        "WHERE PlayerTable.ID = Relation.PlayerID "
+		        "AND Relation.PartidaCode = '%s' "
+		        "ORDER BY Relation.TiempoSobrevivido DESC LIMIT 1;", 
+		        codigoPartida);
+		
+		    int err = mysql_query(conn, consulta);
+		    if (err != 0)
+		    {
+		        sprintf(respuesta, "5/Error al consultar: %u %s\n", mysql_errno(conn), mysql_error(conn));
+		    }
+		    else
+		    {
+		        MYSQL_RES *resultado = mysql_store_result(conn);
+		        MYSQL_ROW row = mysql_fetch_row(resultado);
+		
+		        if (row == NULL)
+		        {
+		            sprintf(respuesta, "5/No existe la partida %s o no tiene jugadores registrados", codigoPartida);
+		        }
+		        else
+		        {
+		            sprintf(respuesta, "5/%s-%s", row[0], row[1]);
+		        }
+		        mysql_free_result(resultado);
+		    }
+		}
 		//Escribimos la respuesta para el socket
 		if (codigo !=0)
 		{
