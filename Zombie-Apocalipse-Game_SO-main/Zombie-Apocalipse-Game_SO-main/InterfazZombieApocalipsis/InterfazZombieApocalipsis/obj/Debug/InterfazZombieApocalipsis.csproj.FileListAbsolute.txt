@@ -1,0 +1,33 @@
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\bin\Debug\InterfazZombieApocalipsis.exe.config
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\bin\Debug\InterfazZombieApocalipsis.exe
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\bin\Debug\InterfazZombieApocalipsis.pdb
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.csproj.AssemblyReference.cache
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.InterfazForm.resources
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.Properties.Resources.resources
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.csproj.GenerateResource.cache
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.csproj.CoreCompileInputs.cache
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.exe
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.pdb
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.exe.config
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\bin\Debug\InterfazZombieApocalipsis.exe.config
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\bin\Debug\InterfazZombieApocalipsis.exe
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\bin\Debug\InterfazZombieApocalipsis.pdb
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.csproj.AssemblyReference.cache
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.exe.config
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.InterfazForm.resources
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.Properties.Resources.resources
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.csproj.GenerateResource.cache
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.csproj.CoreCompileInputs.cache
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.exe
+C:\Users\adria\OneDrive\Escritorio\UPC\3\3A\SO\Project\Project Zero\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.pdb
+C:\Users\Maroua\Downloads\Zombie-Apocalipse-Game_SO-main\Zombie-Apocalipse-Game_SO-main\InterfazZombieApocalipsis\InterfazZombieApocalipsis\bin\Debug\InterfazZombieApocalipsis.exe.config
+C:\Users\Maroua\Downloads\Zombie-Apocalipse-Game_SO-main\Zombie-Apocalipse-Game_SO-main\InterfazZombieApocalipsis\InterfazZombieApocalipsis\bin\Debug\InterfazZombieApocalipsis.exe
+C:\Users\Maroua\Downloads\Zombie-Apocalipse-Game_SO-main\Zombie-Apocalipse-Game_SO-main\InterfazZombieApocalipsis\InterfazZombieApocalipsis\bin\Debug\InterfazZombieApocalipsis.pdb
+C:\Users\Maroua\Downloads\Zombie-Apocalipse-Game_SO-main\Zombie-Apocalipse-Game_SO-main\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.csproj.AssemblyReference.cache
+C:\Users\Maroua\Downloads\Zombie-Apocalipse-Game_SO-main\Zombie-Apocalipse-Game_SO-main\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.exe.config
+C:\Users\Maroua\Downloads\Zombie-Apocalipse-Game_SO-main\Zombie-Apocalipse-Game_SO-main\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.InterfazForm.resources
+C:\Users\Maroua\Downloads\Zombie-Apocalipse-Game_SO-main\Zombie-Apocalipse-Game_SO-main\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.Properties.Resources.resources
+C:\Users\Maroua\Downloads\Zombie-Apocalipse-Game_SO-main\Zombie-Apocalipse-Game_SO-main\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.csproj.GenerateResource.cache
+C:\Users\Maroua\Downloads\Zombie-Apocalipse-Game_SO-main\Zombie-Apocalipse-Game_SO-main\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.csproj.CoreCompileInputs.cache
+C:\Users\Maroua\Downloads\Zombie-Apocalipse-Game_SO-main\Zombie-Apocalipse-Game_SO-main\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.exe
+C:\Users\Maroua\Downloads\Zombie-Apocalipse-Game_SO-main\Zombie-Apocalipse-Game_SO-main\InterfazZombieApocalipsis\InterfazZombieApocalipsis\obj\Debug\InterfazZombieApocalipsis.pdb
