@@ -38,9 +38,9 @@ CREATE TABLE Relation (
 INSERT INTO PlayerTable VALUES(1, 'Pepitopalotes', 'No', 10000);
 INSERT INTO PlayerTable VALUES(2, 'LoDesconozco', 'Banana', 20);
 INSERT INTO PlayerTable VALUES(3, 'FanUPC', 'UniversitatPolitecnicaCatalunya', 500);
-INSERT INTO PartidaTable VALUES('LSZH', 'Ayer', 30, 1);
-INSERT INTO PartidaTable VALUES('LEBL', 'Hoy', 15, 0);
-INSERT INTO PartidaTable VALUES('LEMD', 'Mañana', 70, 1);
+INSERT INTO PartidaTable VALUES('LSZH', 'Ayer', 300, 1);
+INSERT INTO PartidaTable VALUES('LEBL', 'Hoy', 347, 0);
+INSERT INTO PartidaTable VALUES('LEMD', 'Mañana', 107, 1);
 
 -- La table relación
 INSERT INTO Relation VALUES(1, 'LSZH', 2, 300, 1);
