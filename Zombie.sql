@@ -27,6 +27,7 @@ CREATE TABLE Relation (
 	PlayerID INTEGER NOT NULL,
 	PartidaCode VARCHAR(10) NOT NULL,
 	PointsPartida INTEGER NOT NULL,
+	TiempoSobrevivido INTEGER NOT NULL,
 	ZombieKilled BOOLEAN NOT NULL,
 	FOREIGN KEY (PlayerID) REFERENCES PlayerTable(ID),
 	FOREIGN KEY (PartidaCode) REFERENCES PartidaTable(Code)
@@ -42,15 +43,15 @@ INSERT INTO PartidaTable VALUES('LEBL', 'Hoy', 15, 0);
 INSERT INTO PartidaTable VALUES('LEMD', 'Mañana', 70, 1);
 
 -- La table relación
-INSERT INTO Relation VALUES(1, 'LSZH', 2, 1);
-INSERT INTO Relation VALUES(2, 'LSZH', 2, 0);
-INSERT INTO Relation VALUES(3, 'LSZH', 2, 0); 
-INSERT INTO Relation VALUES(1, 'LEBL', 2, 0); 
-INSERT INTO Relation VALUES(2, 'LEBL', 2, 0); 
-INSERT INTO Relation VALUES(3, 'LEBL', 2, 0); 
-INSERT INTO Relation VALUES(1, 'LEMD', 2, 0); 
-INSERT INTO Relation VALUES(2, 'LEMD', 2, 1); 
-INSERT INTO Relation VALUES(3, 'LEMD', 2, 0); 
+INSERT INTO Relation VALUES(1, 'LSZH', 2, 300, 1);
+INSERT INTO Relation VALUES(2, 'LSZH', 2, 120, 0);
+INSERT INTO Relation VALUES(3, 'LSZH', 2, 35, 0); 
+INSERT INTO Relation VALUES(1, 'LEBL', 2, 190, 0); 
+INSERT INTO Relation VALUES(2, 'LEBL', 2, 347, 0); 
+INSERT INTO Relation VALUES(3, 'LEBL', 2, 200, 0); 
+INSERT INTO Relation VALUES(1, 'LEMD', 2, 81, 0); 
+INSERT INTO Relation VALUES(2, 'LEMD', 2, 88, 1); 
+INSERT INTO Relation VALUES(3, 'LEMD', 2, 107, 0); 
 
 
 
