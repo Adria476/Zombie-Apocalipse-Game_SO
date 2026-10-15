@@ -44,34 +44,49 @@ void *AtenderCliente (void *arguments)
 	int terminar =0;
 	// Entramos en un bucle para atender todas las peticiones de este cliente
 	//hasta que se desconecte
-	while (terminar ==0)
+	while (terminar == 0)
 	{
-		// Ahora recibimos la petici?n
-		ret=read(sock_conn,peticion, sizeof(peticion));
-		printf ("Recibido\n");
-		
-		// Tenemos que a?adirle la marca de fin de string 
-		// para que no escriba lo que hay despues en el buffer
-		peticion[ret]='\0';
-		
-		
-		printf ("Peticion: %s\n",peticion);
-		
-		// vamos a ver que quieren
-		char *p = strtok( peticion, "/");
-		int codigo =  atoi(p);		// Ya tenemos el c?digo de la petici?n
-		//int numForm = 0;
-		char data[100];
-		
-		if (codigo !=0)
-		{
-			/*p = strtok( NULL, "/");	
-			numForm = p;*/		//Para saber en el futuro de qué form viene la peticion
-			p = strtok( NULL, "/");		//Cogemos los datos de la peticion
-			strcpy (data, p);
-			// Ya tenemos el nombre
-			printf ("Codigo: %d, Quiere: %s\n", codigo, data);
-		}
+	    // Ahora recibimos la petición
+	    ret = read(sock_conn, peticion, sizeof(peticion));
+	
+	    // =========================================================
+	    // 1. SI CLIENTE DESCONECTA O CIERRA EL SOCKET, SALIR DEL BUCLE
+	    // =========================================================
+	    if (ret <= 0)
+	    {
+	        terminar = 1;
+	        continue;
+	    }
+	
+	    printf ("Recibido\n");
+	    
+	    // Añadimos la marca de fin de string
+	    peticion[ret] = '\0';
+	    printf ("Peticion: %s\n", peticion);
+	    
+	    // Vamos a ver qué quieren
+	    char *p = strtok(peticion, "/");
+	
+	    // =========================================================
+	    // 2. SI LA CADENA NO TIENE FORMATO VÁLIDO, EVITAR ATOI(NULL)
+	    // =========================================================
+	    if (p == NULL)
+	        continue;
+	
+	    int codigo = atoi(p); // Ya no romperá el programa
+	    
+	    char data[100];
+	    
+	    if (codigo != 0)
+	    {
+	        p = strtok(NULL, "/");
+	        if (p != NULL)
+	            strcpy (data, p);
+	        
+	        printf ("Codigo: %d, Quiere: %s\n", codigo, data);
+	    }
+	    
+	    // ... resto de tus bloques else if (codigo == 1), (codigo == 2)...
 		
 		if (codigo ==0) //peticion de desconexion
 		{ terminar=1; }
