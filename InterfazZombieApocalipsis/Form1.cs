@@ -14,6 +14,7 @@ namespace InterfazZombieApocalipsis
     {
         Socket server;
         const int PUERTO = 9050; // El puerto del servidor C
+        IPAddress ip = IPAddress.Parse("127.0.0.1");    //Si no va, poned la que asigna la VirtualBox por defecto (192.168.56.101 o mirad con ip a)
 
         int playerTurn = 1;
         bool partidaIniciada = false;
@@ -54,7 +55,6 @@ namespace InterfazZombieApocalipsis
             try
             {
                 // 1. Abrimos el socket con la IP del servidor (127.0.0.1 para pruebas locales)
-                IPAddress ip = IPAddress.Parse("127.0.0.1");
                 IPEndPoint ipep = new IPEndPoint(ip, PUERTO);
                 server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 server.Connect(ipep);
@@ -97,7 +97,6 @@ namespace InterfazZombieApocalipsis
 
             try
             {
-                IPAddress ip = IPAddress.Parse("127.0.0.1");
                 IPEndPoint ipep = new IPEndPoint(ip, PUERTO);
                 server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 server.Connect(ipep);
