@@ -42,16 +42,10 @@ void *AtenderCliente (void *arguments)
 	
 	
 	int terminar =0;
-	// Entramos en un bucle para atender todas las peticiones de este cliente
-	//hasta que se desconecte
 	while (terminar == 0)
 	{
-	    // Ahora recibimos la petición
 	    ret = read(sock_conn, peticion, sizeof(peticion));
-	
-	    // =========================================================
-	    // 1. SI CLIENTE DESCONECTA O CIERRA EL SOCKET, SALIR DEL BUCLE
-	    // =========================================================
+
 	    if (ret <= 0)
 	    {
 	        terminar = 1;
@@ -59,21 +53,16 @@ void *AtenderCliente (void *arguments)
 	    }
 	
 	    printf ("Recibido\n");
-	    
-	    // Añadimos la marca de fin de string
+
 	    peticion[ret] = '\0';
 	    printf ("Peticion: %s\n", peticion);
-	    
-	    // Vamos a ver qué quieren
+
 	    char *p = strtok(peticion, "/");
-	
-	    // =========================================================
-	    // 2. SI LA CADENA NO TIENE FORMATO VÁLIDO, EVITAR ATOI(NULL)
-	    // =========================================================
+
 	    if (p == NULL)
 	        continue;
 	
-	    int codigo = atoi(p); // Ya no romperá el programa
+	    int codigo = atoi(p);
 	    
 	    char data[100];
 	    
@@ -85,8 +74,6 @@ void *AtenderCliente (void *arguments)
 	        
 	        printf ("Codigo: %d, Quiere: %s\n", codigo, data);
 	    }
-	    
-	    // ... resto de tus bloques else if (codigo == 1), (codigo == 2)...
 		
 		if (codigo ==0) //peticion de desconexion
 		{ terminar=1; }
