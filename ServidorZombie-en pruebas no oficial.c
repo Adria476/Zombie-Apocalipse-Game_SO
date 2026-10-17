@@ -7,7 +7,8 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#include <mysql.h>	//MySQL
+//#include <mysql.h>	//MySQL
+#include <mysql/mysql.h>
 
 //Estructuras
 typedef struct {
@@ -35,10 +36,70 @@ Datos datos[100];	//Vector para los datos de la conexion de 100 clientes
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 ListaConectados miListaConectados;
-miListaConectados.num = 0;
+
 
 int i;
 int sockets[100];
+
+int PonConectado (ListaConectados *lista, char nombre[20], int socket) {
+	//A锟絘de un nuevo conectado. 0 chill, -1 si llena y no pudo a锟絘dir
+	if (lista->num == 100)
+	{ return -1; }
+	else
+	{ 
+		strcpy(lista->conectados[lista->num].nombre, nombre);
+		lista->conectados[lista->num].socket = socket;
+		lista->num++;
+		return 0;
+	}
+}
+
+int DamePosicion (ListaConectados *lista, char nombre[20]) {
+	//Devuelve la posicion en la lista (0) o -1 si no lo encuentra. B锟絪queda
+	int i = 0;
+	int encontrado = 0;
+	while((i<lista->num) && !encontrado)
+	{
+		if(strcmp(lista->conectados[i].nombre, nombre) == 0)
+		{
+			encontrado = 1;
+		}
+		if(!encontrado)
+		{ i++; }
+	}
+	if(encontrado)
+	{ return i; }
+	else
+	{ return -1; }
+}
+
+int EliminaConectado (ListaConectados *lista, char nombre[20]){
+	//0 si elimina, -1 si no existe
+	int posicion = DamePosicion(lista, nombre);
+	//La lista la recibimos por referencia, no hay que ponerle el &
+	if(posicion == -1)
+	{ return -1; }
+	else
+	{
+		for(int i = posicion; i < lista-> num-1; i++)
+		{
+			strcpy(lista->conectados[i].nombre, lista->conectados[i+1].nombre);
+			lista->conectados[i].socket = lista->conectados[i+1].socket;
+		}
+		lista->num--;
+		return 0;
+	}
+}
+
+void DameConectados(ListaConectados *lista, char conectados[300]){
+	//El vector de conectados viene vac锟給 del main y lo llena (Separados por /) y primero va el n锟絤ero de conectados)
+	//"3/Juan/Pepe/Pacheco"
+    sprintf(conectados, "%d", lista->num); //Numero de conectados
+    for (int i = 0; i < lista->num; i++) {
+        strcat(conectados, "/");
+        strcat(conectados, lista->conectados[i].nombre);
+    }
+}
 
 void *AtenderCliente (void *arguments)
 {
@@ -46,6 +107,7 @@ void *AtenderCliente (void *arguments)
 	d = (Datos *) arguments;
 	int sock_conn = d->sock_conn;
 	MYSQL *conn = d->conn;
+	
 	
 	/*int sock_conn;
 	int *s;
@@ -56,6 +118,7 @@ void *AtenderCliente (void *arguments)
 	
 	char peticion[512];
 	char respuesta[512];
+	char usuarioLogueado[20] = "";
 	int ret;
 	
 	
@@ -65,36 +128,22 @@ void *AtenderCliente (void *arguments)
 	while (terminar ==0)
 	{
 		// Ahora recibimos la petici?n
-		ret=read(sock_conn,peticion, sizeof(peticion));
-		printf ("Recibido\n");
-		
-		// Tenemos que a?adirle la marca de fin de string 
-		// para que no escriba lo que hay despues en el buffer
-		peticion[ret]='\0';
-		
-		
-		printf ("Peticion: %s\n",peticion);
-		
-		// vamos a ver que quieren
-		char *p = strtok( peticion, "/");
-		int codigo =  atoi(p);		// Ya tenemos el c?digo de la petici?n
-		//int numForm = 0;
-		char data[100];
-		
-		if (codigo !=0)
-		{
-			/*p = strtok( NULL, "/");	
-			numForm = p;*/		//Para saber en el futuro de qu茅 form viene la peticion
-			p = strtok( NULL, "/");		//Cogemos los datos de la peticion
-			strcpy (data, p);
-			// Ya tenemos el nombre
-			printf ("Codigo: %d, Quiere: %s\n", codigo, data);
-		}
+		ret = read(sock_conn, peticion, sizeof(peticion) - 1);
+		if (ret <= 0)       // el cliente cerr贸 sin avisar
+    		break;
+		peticion[ret] = '\0';
+
+		char *p = strtok(peticion, "/");
+		int codigo = atoi(p);
+		char data[100] = "";
+		p = strtok(NULL, "/");
+		if (p != NULL)
+    		strcpy(data, p);
 		
 		if (codigo ==0) //peticion de desconexion. Cliente tiene que pasarle un "0/NombreDeUsuario"
 		{
 			char usuario[20];
-			strcpy(usuario, data)
+			strcpy(usuario, data);
 			//Tenemos que eliminar el cliente que se acaba de desconectar de la lista de conectados
 			int posicion = DamePosicion(&miListaConectados, usuario);
 			pthread_mutex_lock(&mutex);
@@ -184,17 +233,18 @@ void *AtenderCliente (void *arguments)
 				if (row == 0)	//Si devuelve 0 filas, hubo alg煤n error
 				{ sprintf(respuesta, "2/NO/Usuario o contrase帽a incorrectos"); }
 				else 	//Una fila
-				{ sprintf(respuesta, "2/Correcto/Inicio de sesi贸n correcto"); }
-				
-				mysql_free_result(resultado);	//Liberamos el resultado
-			}
-			//A馻dimos el usuario que acaba de hacer login a la lista de conectados
-			pthread_mutex_lock(&mutex);
-			int res = PonConectado(&miListaConectados, usuario, sock_conn);
-			pthread_mutex_unlock(&mutex);
+				{ sprintf(respuesta, "2/Correcto/Inicio de sesi贸n correcto");
+				strcpy(usuarioLogueado, usuario); }
+				//A锟絘dimos el usuario que acaba de hacer login a la lista de conectados
+				pthread_mutex_lock(&mutex);
+				int res = PonConectado(&miListaConectados, usuario, sock_conn);
+				pthread_mutex_unlock(&mutex);
 			
 			if (res == -1) {
 				printf("Lista de conectados llena\n");
+			}
+				
+				mysql_free_result(resultado);	//Liberamos el resultado
 			}
 		}
 		else if (codigo == 3) // consulta adria: el jugador encontro pistola?
@@ -295,9 +345,9 @@ void *AtenderCliente (void *arguments)
 			
 			pthread_mutex_lock(&mutex); //Para que nadie toque la lista mientras nosotros la tocamos
 			DameConectados(&miListaConectados, listaConectadillos);
-			pthread_mutex_unlock(&mutex(; //Ya pueden toquetear otros
+			pthread_mutex_unlock(&mutex); //Ya pueden toquetear otros
 			
-			sprintf(respuesta, "6/%s", listaConectadillos)
+			sprintf(respuesta, "6/%s", listaConectadillos);
 		}
 		//Escribimos la respuesta para el socket
 		if (codigo !=0)
@@ -307,69 +357,16 @@ void *AtenderCliente (void *arguments)
 			write (sock_conn,respuesta,strlen(respuesta));
 		}			
 	}
+	if (strlen(usuarioLogueado) > 0)
+	{
+		pthread_mutex_lock(&mutex);
+		EliminaConectado(&miListaConectados, usuarioLogueado);
+		pthread_mutex_unlock(&mutex);
+	}
+
+	close(sock_conn);
+	return NULL;	
 	// Se acabo el servicio para este cliente
-	close(sock_conn); 
-	
-}
-
-int PonConectado (ListaConectados *lista, char nombre[20], int socket) {
-	//A馻de un nuevo conectado. 0 chill, -1 si llena y no pudo a馻dir
-	if (lista->num == 100)
-	{ return -1; }
-	else
-	{ 
-		strcpy(lista->conectados[lista->num].nombre, nombre);
-		lista->conectados[lista->num].socket = socket;
-		lista->num++;
-		return 0;
-	}
-}
-
-int DamePosicion (ListaConectados *lista, char nombre[20]) {
-	//Devuelve la posicion en la lista (0) o -1 si no lo encuentra. B鷖queda
-	int i = 0;
-	int encontrado = 0;
-	while((i<lista->num) && !encontrado)
-	{
-		if(strcmp(lista->conectados[i].nombre, nombre) == 0)
-		{
-			encontrado = 1;
-		}
-		if(!encontrado)
-		{ i++; }
-	}
-	if(encontrado)
-	{ return i; }
-	else
-	{ return -1; }
-}
-
-int EliminaConectado (ListaConectados *lista, char nombre[20]){
-	//0 si elimina, -1 si no existe
-	int posicion = DamePosicion(lista, nombre);
-	//La lista la recibimos por referencia, no hay que ponerle el &
-	if(posicion == -1)
-	{ return -1; }
-	else
-	{
-		for(int i = posicion; i < lista-> num-1; i++)
-		{
-			strcpy(lista->conectados[i].nombre, lista->conectados[i+1].nombre);
-			lista->conectados[i].socket = lista->conectados[i+1].socket;
-		}
-		lista->num--;
-		return 0;
-	}
-}
-
-void DameConectados (ListaConectados *lista, char conectados[300]){
-	//El vector de conectados viene vac韔 del main y lo llena (Separados por /) y primero va el n鷐ero de conectados)
-	//"3/Juan/Pepe/Pacheco"
-	sprintf(conectados,"%d", lista->num);	//Numero de conectados
-	for(int i = 0; i < lista->num; i++)
-	{	//Nombres
-		sprintf(conectados, "%s/%s", conectados, lista->conectados[i].nombre);
-	}
 }
 
 int main(int argc, char *argv[])
@@ -389,8 +386,7 @@ int main(int argc, char *argv[])
 	}
 	
 	//Conectampos con lo creado									Tabla
-	conn = mysql_real_connect(conn, "localhost","root","mysql","Zombie",0,NULL,0);
-	if (conn == NULL)	//Protecci贸n
+	conn = mysql_real_connect(conn, "localhost", "root", "", "Zombie", 0, NULL, 0);	if (conn == NULL)	//Protecci贸n
 	{
 		printf("Error al iniciar la conexi贸n: %u %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
