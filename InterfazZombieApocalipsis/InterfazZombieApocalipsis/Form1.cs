@@ -120,6 +120,7 @@ namespace InterfazZombieApocalipsis
         // BOTON DE CONSULTAR
         private void ConsultarButton_Click(object sender, EventArgs e)
         {
+
         }
 
 
