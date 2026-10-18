@@ -129,7 +129,7 @@ namespace InterfazZombieApocalipsis
         {
             if (server != null && server.Connected)
             {
-                byte[] msg = Encoding.ASCII.GetBytes("0/");
+                byte[] msg = Encoding.ASCII.GetBytes("0/"+ NombreTextBox.Text); //Después del 0/ va el nombre del jugador que se desconecta
                 server.Send(msg);
                 server.Close();
             }
@@ -346,6 +346,62 @@ namespace InterfazZombieApocalipsis
             {
                 MessageBox.Show("Error al conectar: " + ex.Message, "Error de red");
             }
+        }
+
+        private void ConectadosButton_Click(object sender, EventArgs e)
+        {
+            if (server == null || !server.Connected)
+            {
+                MessageBox.Show("Primero inicia sesión.", "Atención", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            try
+            {
+                server.Send(Encoding.ASCII.GetBytes("6/"));
+
+                byte[] buffer = new byte[512];
+                int n = server.Receive(buffer);
+                string respuesta = Encoding.ASCII.GetString(buffer, 0, n);
+
+                string[] partes = respuesta.Split('/');
+
+                // Limpiamos la caja blanca (ListBox) debajo del botón Conectados
+                ConectadosListBox.Items.Clear();
+                for (int i = 2; i < partes.Length; i++)
+                {
+                    if (!string.IsNullOrWhiteSpace(partes[i]))
+                        ConectadosListBox.Items.Add(partes[i]);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al pedir la lista de conectados: " + ex.Message);
+            }
+        }
+
+        private void label4_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label10_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label10_Click_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label11_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void IniciarSesionLabel_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

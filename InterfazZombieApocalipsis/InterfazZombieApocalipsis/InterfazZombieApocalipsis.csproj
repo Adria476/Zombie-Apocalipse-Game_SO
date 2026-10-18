@@ -89,5 +89,14 @@
   <ItemGroup>
     <None Include="DebugData\71CZ-URcXbL.png" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\zombie8934.jpeg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\zombi.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\clasificacion.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
