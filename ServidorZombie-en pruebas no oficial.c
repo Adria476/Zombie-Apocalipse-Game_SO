@@ -7,8 +7,7 @@
 #include <stdio.h>
 #include <pthread.h>
 
-//#include <mysql.h>	//MySQL
-#include <mysql/mysql.h>
+#include <mysql.h>	//MySQL
 
 //Estructuras
 typedef struct {
@@ -35,14 +34,316 @@ Datos datos[100];	//Vector para los datos de la conexion de 100 clientes
 //Estructura necesaria para acceso excluyente
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-ListaConectados miListaConectados;
-
+ListaConectados miListaConectados = { .num = 0};
 
 int i;
 int sockets[100];
 
+//Para que no se queje de que las funciones est�n definidas despu�s
+int PonConectado(ListaConectados *lista, char nombre[20], int socket);
+int DamePosicion(ListaConectados *lista, char nombre[20]);
+int EliminaConectado(ListaConectados *lista, char nombre[20]);
+void DameConectados(ListaConectados *lista, char conectados[300]);
+
+void *AtenderCliente (void *arguments)
+{
+	
+	Datos *d;
+	d = (Datos *) arguments;
+	int sock_conn = d->sock_conn;
+	MYSQL *conn = d->conn;
+	
+	/*int sock_conn;
+	int *s;
+	s= (int *) socket;
+	sock_conn= *s;*/
+	
+	//int socket_conn = * (int *) socket;
+	
+	char peticion[512];
+	char respuesta[512];
+	int ret;
+	
+	
+	int terminar =0;
+	// Entramos en un bucle para atender todas las peticiones de este cliente
+	// hasta que se desconecte
+	while (terminar ==0)
+	{
+		// Ahora recibimos la petici?n
+		ret=read(sock_conn,peticion, sizeof(peticion));
+		printf ("Recibido\n");
+		
+		// Tenemos que a?adirle la marca de fin de string 
+		// para que no escriba lo que hay despues en el buffer
+		peticion[ret]='\0';
+		
+		
+		printf ("Peticion: %s\n",peticion);
+		
+		// vamos a ver que quieren
+		char *p = strtok( peticion, "/");
+		int codigo =  atoi(p);		// Ya tenemos el c?digo de la petici?n
+		//int numForm = 0;
+		char data[100];
+		
+		if (codigo !=0)
+		{
+			/*p = strtok( NULL, "/");	
+			numForm = p;*/		//Para saber en el futuro de qué form viene la peticion
+			p = strtok( NULL, "/");		//Cogemos los datos de la peticion
+			strcpy (data, p);
+			// Ya tenemos el nombre
+			printf ("Codigo: %d, Quiere: %s\n", codigo, data);
+		}
+		
+		if (codigo ==0) //peticion de desconexion. Cliente tiene que pasarle un "0/NombreDeUsuario"
+		{
+			char usuario[20];
+			strcpy(usuario, data);
+			//Tenemos que eliminar el cliente que se acaba de desconectar de la lista de conectados
+			int posicion = DamePosicion(&miListaConectados, usuario);
+			//pthread_mutex_lock(&mutex);
+			int res = EliminaConectado(&miListaConectados, usuario);
+			//pthread_mutex_unlock(&mutex);
+			
+			if( res == -1)
+			{ printf("No existe\n"); }
+			else
+			{ printf("Eliminado\n"); }
+			
+			terminar=1;
+		}
+		else if (codigo == 1) //Registro de usuario (vendran como usuario-contraseña en data)
+		{
+			char usuario[30];
+			char *pAyuda = strtok(data, "-");
+			strcpy(usuario, pAyuda);
+			char con[30];
+			pAyuda = strtok(NULL, "-");
+			strcpy(con, pAyuda);
+			
+			char consulta[200];
+			sprintf(consulta, "SELECT PlayerTable.Name FROM PlayerTable WHERE PlayerTable.Name = '%s'", usuario);		//Antes de añadir comprobamos que el nombre sea distinto y no haya duplicados
+			
+			pthread_mutex_lock(&mutex);
+			int err = mysql_query (conn, consulta); //Comprobamos que no haya duplicados
+			
+			if (err != 0)
+			{
+				sprintf(respuesta, "1/Error al consultar: %u %s\n", mysql_errno(conn), mysql_error(conn));
+			}
+			else
+			{
+				MYSQL_RES *resultado;
+				int rows;
+				
+				resultado = mysql_store_result (conn);	//Nos devuelve una tabla con todas las coincidencias
+				
+				rows = mysql_num_rows(resultado); //Comprobamos el número de filas que ha seleccionado (deberían ser cero)
+				
+				if (rows > 0)	//Sigifica que alguien tiene el mismo nombre
+				{
+					sprintf(respuesta, "1/Error, nombre de usuario ya en uso");
+				}
+				else
+				{
+					char orden[200];
+					sprintf(orden, "INSERT INTO PlayerTable (Name, Contra, GlobalPoints) VALUES ('%s','%s',0)", usuario,con);	//El ID se ha automatizado en la base de datos, sube solo por cada uno que añadas
+					
+					int err = mysql_query (conn, orden);	//Hacemos la orden de añadir el cliente
+					if (err != 0)
+					{
+						sprintf(respuesta, "1/Error al consultar: %u %s\n", mysql_errno(conn), mysql_error(conn));
+					}
+					else
+					{ sprintf(respuesta,"1/Usuario registrado correctamente, pruebe a iniciar sesión"); }
+				}
+				mysql_free_result(resultado);	//Liberamos el resultado
+			}
+			pthread_mutex_unlock(&mutex);
+		}
+		else if (codigo == 2)	//Inicio de sesión
+		{
+			char usuario[30];					//Nos quedamos con el usuario y la contraseña
+			char *pAyuda = strtok(data, "-");
+			strcpy(usuario, pAyuda);
+			char con[30];
+			pAyuda = strtok(NULL, "-");
+			strcpy(con, pAyuda);
+			
+			char consulta[300];
+			strcpy(consulta, "SELECT PlayerTable.Name, PlayerTable.Contra FROM PlayerTable WHERE PlayerTable.Name = '");
+			strcat(consulta,usuario);
+			strcat(consulta, "' AND PlayerTable.Contra = '");
+			strcat(consulta,con);
+			strcat(consulta,"'");
+			
+			pthread_mutex_lock(&mutex);
+			int err = mysql_query (conn, consulta);
+			if (err != 0)
+			{ sprintf(respuesta, "2/Usuario no encontrado: %u %s\n", mysql_errno(conn), mysql_error(conn)); }
+			else
+			{ 
+				MYSQL_RES *resultado;
+				int row;
+				
+				resultado = mysql_store_result (conn);	//Nos devuelve una tabla con todas las coincidencias
+				
+				row = mysql_num_rows(resultado); //Comprobamos el número de filas que ha seleccionado (debería ser una)
+				if (row == 0)	//Si devuelve 0 filas, hubo algún error
+				{ sprintf(respuesta, "2/NO/Usuario o contraseña incorrectos"); }
+				else 	//Una fila
+				{ sprintf(respuesta, "2/Correcto/Inicio de sesión correcto"); }
+				
+				mysql_free_result(resultado);	//Liberamos el resultado
+			}
+			//A�adimos el usuario que acaba de hacer login a la lista de conectados
+			int res = PonConectado(&miListaConectados, usuario, sock_conn);
+			
+			
+			if (res == -1) {
+				printf("Lista de conectados llena\n");
+			}
+			pthread_mutex_unlock(&mutex);
+		}
+		else if (codigo == 3) // consulta adria: el jugador encontro pistola?
+		{
+		    char usuario[30];
+		    strcpy(usuario, data);
+
+		    char consulta[400];
+		    sprintf(consulta, 
+		        "SELECT PartidaTable.Code "
+		        "FROM PlayerTable, PartidaTable, Relation "
+		        "WHERE PlayerTable.Name = '%s' "
+		        "AND PlayerTable.ID = Relation.PlayerID "
+		        "AND Relation.PartidaCode = PartidaTable.Code "
+		        "AND Relation.ZombieKilled = 1 "
+		        "AND PartidaTable.PistolaFound = 1", usuario);
+
+			pthread_mutex_lock(&mutex);
+		    int err = mysql_query(conn, consulta);
+		    if (err == 0)
+		    {
+		        MYSQL_RES *resultado = mysql_store_result(conn);
+				if (resultado != NULL)
+				{
+					if (mysql_num_rows(resultado) == 0)
+						sprintf(respuesta, "3/NO/El jugador %s no ha encontrado o usado pistola.", usuario);
+					else
+						sprintf(respuesta, "3/SI/Pistola encontrada.");
+					
+					mysql_free_result(resultado);
+				}
+		    }
+			else
+			{ sprintf(respuesta, "3/Usuario no encontrado: %u %s\n", mysql_errno(conn), mysql_error(conn)); }
+			pthread_mutex_unlock(&mutex);
+		}
+		else if (codigo == 4) // consulta tomas: cuantos jugadores hay en la partida?
+		{
+		    char codigoPartida[10];
+		    strcpy(codigoPartida, data);
+		
+		    char consulta[300];
+		    sprintf(consulta, "SELECT COUNT(*) FROM Relation WHERE PartidaCode = '%s'", codigoPartida);
+		
+			//stfu
+			pthread_mutex_lock(&mutex);
+		    int err = mysql_query(conn, consulta);
+		    if (err != 0)
+		    {
+		        sprintf(respuesta, "4/Error al consultar: %u %s\n", mysql_errno(conn), mysql_error(conn));
+		    }
+		    else
+		    {
+		        MYSQL_RES *resultado = mysql_store_result(conn);
+				if (resultado != NULL)
+				{
+					MYSQL_ROW row = mysql_fetch_row(resultado);
+					if (row != NULL)
+					{
+						sprintf(respuesta, "4/%s", row[0]); 
+					}
+					else
+					{
+						sprintf(respuesta, "4/0");
+					}
+					mysql_free_result(resultado);
+				}
+				else	// Por si la query no devuelve tabla de resultados
+				{ sprintf(respuesta, "4/0"); }
+		    }
+			pthread_mutex_unlock(&mutex);
+		}
+		else if (codigo == 5) // consulta maroua: que jugador vivio mas tiempo en la partida X?
+		{
+		    char codigoPartida[10];
+		    strcpy(codigoPartida, data);
+		
+		    char consulta[400];
+		    sprintf(consulta, 
+		        "SELECT PlayerTable.Name, Relation.TiempoSobrevivido "
+		        "FROM PlayerTable, Relation "
+		        "WHERE PlayerTable.ID = Relation.PlayerID "
+		        "AND Relation.PartidaCode = '%s' "
+		        "ORDER BY Relation.TiempoSobrevivido DESC LIMIT 1;", 
+		        codigoPartida);
+		
+			pthread_mutex_lock(&mutex);
+		    int err = mysql_query(conn, consulta);
+		    if (err != 0)
+		    {
+		        sprintf(respuesta, "5/Error al consultar: %u %s\n", mysql_errno(conn), mysql_error(conn));
+		    }
+		    else
+		    {
+		        MYSQL_RES *resultado = mysql_store_result(conn);
+				if (resultado != NULL)
+				{
+					MYSQL_ROW row = mysql_fetch_row(resultado);
+					
+					if (row == NULL)
+					{
+						sprintf(respuesta, "5/No existe la partida %s o no tiene jugadores registrados", codigoPartida);
+					}
+					else
+					{
+						sprintf(respuesta, "5/%s-%s", row[0], row[1]);
+					}
+					mysql_free_result(resultado);
+				}
+				else
+				{ sprintf(respuesta, "No existe la partida"); }
+		    }
+			pthread_mutex_unlock(&mutex);
+		}
+		else if (codigo == 6)	//Quiere conseguir la lista de conectados
+		{
+			char listaConectadillos[300];
+			
+			pthread_mutex_lock(&mutex); //Para que nadie toque la lista mientras nosotros la tocamos
+			DameConectados(&miListaConectados, listaConectadillos);
+			pthread_mutex_unlock(&mutex); //Ya pueden toquetear otros
+			
+			sprintf(respuesta, "6/%s", listaConectadillos);
+		}
+		//Escribimos la respuesta para el socket
+		if (codigo !=0)
+		{
+			printf ("Respuesta: %s\n", respuesta);	//Comprobar que todo chill
+			// Enviamos respuesta
+			write (sock_conn,respuesta,strlen(respuesta));
+		}			
+	}
+	// Se acabo el servicio para este cliente
+	close(sock_conn); 
+	
+}
+
 int PonConectado (ListaConectados *lista, char nombre[20], int socket) {
-	//A�ade un nuevo conectado. 0 chill, -1 si llena y no pudo a�adir
+	//A�ade un nuevo conectado. 0 chill, -1 si llena y no pudo a�adir
 	if (lista->num == 100)
 	{ return -1; }
 	else
@@ -55,7 +356,7 @@ int PonConectado (ListaConectados *lista, char nombre[20], int socket) {
 }
 
 int DamePosicion (ListaConectados *lista, char nombre[20]) {
-	//Devuelve la posicion en la lista (0) o -1 si no lo encuentra. B�squeda
+	//Devuelve la posicion en la lista (0) o -1 si no lo encuentra. B�squeda
 	int i = 0;
 	int encontrado = 0;
 	while((i<lista->num) && !encontrado)
@@ -91,282 +392,14 @@ int EliminaConectado (ListaConectados *lista, char nombre[20]){
 	}
 }
 
-void DameConectados(ListaConectados *lista, char conectados[300]){
-	//El vector de conectados viene vac�o del main y lo llena (Separados por /) y primero va el n�mero de conectados)
+void DameConectados (ListaConectados *lista, char conectados[300]){
+	//El vector de conectados viene vac�o del main y lo llena (Separados por /) y primero va el n�mero de conectados)
 	//"3/Juan/Pepe/Pacheco"
-    sprintf(conectados, "%d", lista->num); //Numero de conectados
-    for (int i = 0; i < lista->num; i++) {
-        strcat(conectados, "/");
-        strcat(conectados, lista->conectados[i].nombre);
-    }
-}
-
-void *AtenderCliente (void *arguments)
-{
-	Datos *d;
-	d = (Datos *) arguments;
-	int sock_conn = d->sock_conn;
-	MYSQL *conn = d->conn;
-	
-	
-	/*int sock_conn;
-	int *s;
-	s= (int *) socket;
-	sock_conn= *s;*/
-	
-	//int socket_conn = * (int *) socket;
-	
-	char peticion[512];
-	char respuesta[512];
-	char usuarioLogueado[20] = "";
-	int ret;
-	
-	
-	int terminar =0;
-	// Entramos en un bucle para atender todas las peticiones de este cliente
-	//hasta que se desconecte
-	while (terminar ==0)
-	{
-		// Ahora recibimos la petici?n
-		ret = read(sock_conn, peticion, sizeof(peticion) - 1);
-		if (ret <= 0)       // el cliente cerró sin avisar
-    		break;
-		peticion[ret] = '\0';
-
-		char *p = strtok(peticion, "/");
-		int codigo = atoi(p);
-		char data[100] = "";
-		p = strtok(NULL, "/");
-		if (p != NULL)
-    		strcpy(data, p);
-		
-		if (codigo ==0) //peticion de desconexion. Cliente tiene que pasarle un "0/NombreDeUsuario"
-		{
-			char usuario[20];
-			strcpy(usuario, data);
-			//Tenemos que eliminar el cliente que se acaba de desconectar de la lista de conectados
-			int posicion = DamePosicion(&miListaConectados, usuario);
-			pthread_mutex_lock(&mutex);
-			int res = EliminaConectado(&miListaConectados, usuario);
-			pthread_mutex_unlock(&mutex);
-			
-			if( res == -1)
-			{ printf("No existe\n"); }
-			else
-			{ printf("Eliminado\n"); }
-			
-			terminar=1;
-		}
-		else if (codigo == 1) //Registro de usuario (vendran como usuario-contraseña en data)
-		{
-			char usuario[30];
-			char *pAyuda = strtok(data, "-");
-			strcpy(usuario, pAyuda);
-			char con[30];
-			pAyuda = strtok(NULL, "-");
-			strcpy(con, pAyuda);
-			
-			char consulta[200];
-			sprintf(consulta, "SELECT PlayerTable.Name FROM PlayerTable WHERE PlayerTable.Name = '%s'", usuario);		//Antes de añadir comprobamos que el nombre sea distinto y no haya duplicados
-			int err = mysql_query (conn, consulta); //Comprobamos que no haya duplicados
-			
-			if (err != 0)
-			{
-				sprintf(respuesta, "1/Error al consultar: %u %s\n", mysql_errno(conn), mysql_error(conn));
-			}
-			else
-			{
-				MYSQL_RES *resultado;
-				int rows;
-				
-				resultado = mysql_store_result (conn);	//Nos devuelve una tabla con todas las coincidencias
-				
-				rows = mysql_num_rows(resultado); //Comprobamos el número de filas que ha seleccionado (deberían ser cero)
-				
-				if (rows > 0)	//Sigifica que alguien tiene el mismo nombre
-				{
-					sprintf(respuesta, "1/Error, nombre de usuario ya en uso");
-				}
-				else
-				{
-					char orden[200];
-					sprintf(orden, "INSERT INTO PlayerTable (Name, Contra, GlobalPoints) VALUES ('%s','%s',0)", usuario,con);	//El ID se ha automatizado en la base de datos, sube solo por cada uno que añadas
-					
-					int err = mysql_query (conn, orden);	//Hacemos la orden de añadir el cliente
-					if (err != 0)
-					{
-						sprintf(respuesta, "1/Error al consultar: %u %s\n", mysql_errno(conn), mysql_error(conn));
-					}
-					else
-					{ sprintf(respuesta,"1/Usuario registrado correctamente, pruebe a iniciar sesión"); }
-				}
-				mysql_free_result(resultado);	//Liberamos el resultado
-			}
-		}
-		else if (codigo == 2)	//Inicio de sesión
-		{
-			char usuario[30];					//Nos quedamos con el usuario y la contraseña
-			char *pAyuda = strtok(data, "-");
-			strcpy(usuario, pAyuda);
-			char con[30];
-			pAyuda = strtok(NULL, "-");
-			strcpy(con, pAyuda);
-			
-			char consulta[300];
-			strcpy(consulta, "SELECT PlayerTable.Name, PlayerTable.Contra FROM PlayerTable WHERE PlayerTable.Name = '");
-			strcat(consulta,usuario);
-			strcat(consulta, "' AND PlayerTable.Contra = '");
-			strcat(consulta,con);
-			strcat(consulta,"'");
-			
-			int err = mysql_query (conn, consulta);
-			if (err != 0)
-			{ sprintf(respuesta, "2/Usuario no encontrado: %u %s\n", mysql_errno(conn), mysql_error(conn)); }
-			else
-			{ 
-				MYSQL_RES *resultado;
-				int row;
-				
-				resultado = mysql_store_result (conn);	//Nos devuelve una tabla con todas las coincidencias
-				
-				row = mysql_num_rows(resultado); //Comprobamos el número de filas que ha seleccionado (debería ser una)
-				if (row == 0)	//Si devuelve 0 filas, hubo algún error
-				{ sprintf(respuesta, "2/NO/Usuario o contraseña incorrectos"); }
-				else 	//Una fila
-				{ sprintf(respuesta, "2/Correcto/Inicio de sesión correcto");
-				strcpy(usuarioLogueado, usuario); }
-				//A�adimos el usuario que acaba de hacer login a la lista de conectados
-				pthread_mutex_lock(&mutex);
-				int res = PonConectado(&miListaConectados, usuario, sock_conn);
-				pthread_mutex_unlock(&mutex);
-			
-			if (res == -1) {
-				printf("Lista de conectados llena\n");
-			}
-				
-				mysql_free_result(resultado);	//Liberamos el resultado
-			}
-		}
-		else if (codigo == 3) // consulta adria: el jugador encontro pistola?
-		{
-		    char usuario[30];
-		    strcpy(usuario, data);
-
-		    char consulta[400];
-		    sprintf(consulta, 
-		        "SELECT PartidaTable.Code "
-		        "FROM PlayerTable, PartidaTable, Relation "
-		        "WHERE PlayerTable.Name = '%s' "
-		        "AND PlayerTable.ID = Relation.PlayerID "
-		        "AND Relation.PartidaCode = PartidaTable.Code "
-		        "AND Relation.ZombieKilled = 1 "
-		        "AND PartidaTable.PistolaFound = 1", usuario);
-
-		    int err = mysql_query(conn, consulta);
-		    if (err == 0)
-		    {
-		        MYSQL_RES *resultado = mysql_store_result(conn);
-
-		        if (mysql_num_rows(resultado) == 0)
-		            sprintf(respuesta, "3/NO/El jugador %s no ha encontrado o usado pistola.", usuario);
-		        else
-		            sprintf(respuesta, "3/SI/Pistola encontrada.");
-		
-		        mysql_free_result(resultado);
-		    }
-		}
-		else if (codigo == 4) // consulta tomas: cuantos jugadores hay en la partida?
-		{
-		    char codigoPartida[10];
-		    strcpy(codigoPartida, data);
-		
-		    char consulta[300];
-		    sprintf(consulta, "SELECT COUNT(*) FROM Relation WHERE PartidaCode = '%s'", codigoPartida);
-		
-		    int err = mysql_query(conn, consulta);
-		    if (err != 0)
-		    {
-		        sprintf(respuesta, "4/Error al consultar: %u %s\n", mysql_errno(conn), mysql_error(conn));
-		    }
-		    else
-		    {
-		        MYSQL_RES *resultado = mysql_store_result(conn);
-		        MYSQL_ROW row = mysql_fetch_row(resultado);
-		
-		        if (row != NULL)
-		        {
-		            sprintf(respuesta, "4/%s", row[0]); 
-		        }
-		        else
-		        {
-		            sprintf(respuesta, "4/0");
-		        }
-		        mysql_free_result(resultado);
-		    }
-		}
-		else if (codigo == 5) // consulta maroua: que jugador vivio mas tiempo en la partida X?
-		{
-		    char codigoPartida[10];
-		    strcpy(codigoPartida, data);
-		
-		    char consulta[400];
-		    sprintf(consulta, 
-		        "SELECT PlayerTable.Name, Relation.TiempoSobrevivido "
-		        "FROM PlayerTable, Relation "
-		        "WHERE PlayerTable.ID = Relation.PlayerID "
-		        "AND Relation.PartidaCode = '%s' "
-		        "ORDER BY Relation.TiempoSobrevivido DESC LIMIT 1;", 
-		        codigoPartida);
-		
-		    int err = mysql_query(conn, consulta);
-		    if (err != 0)
-		    {
-		        sprintf(respuesta, "5/Error al consultar: %u %s\n", mysql_errno(conn), mysql_error(conn));
-		    }
-		    else
-		    {
-		        MYSQL_RES *resultado = mysql_store_result(conn);
-		        MYSQL_ROW row = mysql_fetch_row(resultado);
-		
-		        if (row == NULL)
-		        {
-		            sprintf(respuesta, "5/No existe la partida %s o no tiene jugadores registrados", codigoPartida);
-		        }
-		        else
-		        {
-		            sprintf(respuesta, "5/%s-%s", row[0], row[1]);
-		        }
-		        mysql_free_result(resultado);
-		    }
-		}
-		else if (codigo == 6)	//Quiere conseguir la lista de conectados
-		{
-			char listaConectadillos[300];
-			
-			pthread_mutex_lock(&mutex); //Para que nadie toque la lista mientras nosotros la tocamos
-			DameConectados(&miListaConectados, listaConectadillos);
-			pthread_mutex_unlock(&mutex); //Ya pueden toquetear otros
-			
-			sprintf(respuesta, "6/%s", listaConectadillos);
-		}
-		//Escribimos la respuesta para el socket
-		if (codigo !=0)
-		{
-			printf ("Respuesta: %s\n", respuesta);	//Comprobar que todo chill
-			// Enviamos respuesta
-			write (sock_conn,respuesta,strlen(respuesta));
-		}			
+	sprintf(conectados,"%d", lista->num);	//Numero de conectados
+	for(int i = 0; i < lista->num; i++)
+	{	//Nombres
+		sprintf(conectados, "%s/%s", conectados, lista->conectados[i].nombre);
 	}
-	if (strlen(usuarioLogueado) > 0)
-	{
-		pthread_mutex_lock(&mutex);
-		EliminaConectado(&miListaConectados, usuarioLogueado);
-		pthread_mutex_unlock(&mutex);
-	}
-
-	close(sock_conn);
-	return NULL;	
-	// Se acabo el servicio para este cliente
 }
 
 int main(int argc, char *argv[])
@@ -386,7 +419,8 @@ int main(int argc, char *argv[])
 	}
 	
 	//Conectampos con lo creado									Tabla
-	conn = mysql_real_connect(conn, "localhost", "root", "", "Zombie", 0, NULL, 0);	if (conn == NULL)	//Protección
+	conn = mysql_real_connect(conn, "localhost","root","mysql","Zombie",0,NULL,0);
+	if (conn == NULL)	//Protección
 	{
 		printf("Error al iniciar la conexión: %u %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
@@ -411,7 +445,7 @@ int main(int argc, char *argv[])
 	//htonl formatea el numero que recibe al formato necesario
 	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
 	// establecemos el puerto de escucha
-	serv_adr.sin_port = htons(9050);
+	serv_adr.sin_port = htons(9080);
 	if (bind(sock_listen, (struct sockaddr *) &serv_adr, sizeof(serv_adr)) < 0)
 		printf ("Error al bind\n");
 	
@@ -432,7 +466,7 @@ int main(int argc, char *argv[])
 		
 		// Crear thead y decirle lo que tiene que hacer
 		pthread_create (&thread, NULL, AtenderCliente,&datos[i]);
-		i=i+1;
+		i = (i + 1) % 100;
 	}
 	
 	mysql_close(conn);		//Cerrar conexion

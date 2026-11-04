@@ -13,7 +13,7 @@ namespace InterfazZombieApocalipsis
     public partial class InterfazForm : Form
     {
         Socket server;
-        const int PUERTO = 9050; // El puerto del servidor C
+        const int PUERTO = 9080; // El puerto del servidor C
         IPAddress ip = IPAddress.Parse("127.0.0.1");    //Si no va, poned la que asigna la VirtualBox por defecto (192.168.56.101 o mirad con ip a)
 
         int playerTurn = 1;
@@ -271,7 +271,12 @@ namespace InterfazZombieApocalipsis
             string parametro = "";
             int codigoConsulta = 0;
 
-            if (PistolaRadioButton.Checked)
+            if (server == null || !server.Connected)
+            {
+                MessageBox.Show("Primero inicia sesión.", "Atención", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            else if (PistolaRadioButton.Checked)
             {
                 codigoConsulta = 3;
                 parametro = JugadorTextBox.Text.Trim();
@@ -313,18 +318,14 @@ namespace InterfazZombieApocalipsis
             try
             {
                 IPEndPoint ipep = new IPEndPoint(ip, PUERTO);
-                Socket socketConsulta = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socketConsulta.Connect(ipep);
-
+                
                 string mensaje = codigoConsulta + "/" + parametro;
                 byte[] msg = Encoding.ASCII.GetBytes(mensaje);
-                socketConsulta.Send(msg);
+                server.Send(msg);
 
                 byte[] buffer = new byte[512];
-                int bytesRecibidos = socketConsulta.Receive(buffer);
+                int bytesRecibidos = server.Receive(buffer);
                 string respuesta = Encoding.ASCII.GetString(buffer, 0, bytesRecibidos).Trim();
-
-                socketConsulta.Close();
 
                 // aqui decimos el resultado
                 string[] partes = respuesta.Split('/');
@@ -357,7 +358,7 @@ namespace InterfazZombieApocalipsis
             }
             try
             {
-                server.Send(Encoding.ASCII.GetBytes("6/"));
+                server.Send(Encoding.ASCII.GetBytes("6/a"));
 
                 byte[] buffer = new byte[512];
                 int n = server.Receive(buffer);
