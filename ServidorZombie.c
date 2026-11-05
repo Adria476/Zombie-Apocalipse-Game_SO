@@ -39,7 +39,7 @@ ListaConectados miListaConectados = { .num = 0};
 int i;
 int sockets[100];
 
-//Para que no se queje de que las funciones est�n definidas despu�s
+//Para que no se queje de que las funciones están definidas después
 int PonConectado(ListaConectados *lista, char nombre[20], int socket);
 int DamePosicion(ListaConectados *lista, char nombre[20]);
 int EliminaConectado(ListaConectados *lista, char nombre[20]);
@@ -90,7 +90,7 @@ void *AtenderCliente (void *arguments)
 		if (codigo !=0)
 		{
 			/*p = strtok( NULL, "/");	
-			numForm = p;*/		//Para saber en el futuro de qué form viene la peticion
+			numForm = p;*/		//Para saber en el futuro de quÃ© form viene la peticion
 			p = strtok( NULL, "/");		//Cogemos los datos de la peticion
 			strcpy (data, p);
 			// Ya tenemos el nombre
@@ -114,7 +114,7 @@ void *AtenderCliente (void *arguments)
 			
 			terminar=1;
 		}
-		else if (codigo == 1) //Registro de usuario (vendran como usuario-contraseña en data)
+		else if (codigo == 1) //Registro de usuario (vendran como usuario-contraseÃ±a en data)
 		{
 			char usuario[30];
 			char *pAyuda = strtok(data, "-");
@@ -124,7 +124,7 @@ void *AtenderCliente (void *arguments)
 			strcpy(con, pAyuda);
 			
 			char consulta[200];
-			sprintf(consulta, "SELECT PlayerTable.Name FROM PlayerTable WHERE PlayerTable.Name = '%s'", usuario);		//Antes de añadir comprobamos que el nombre sea distinto y no haya duplicados
+			sprintf(consulta, "SELECT PlayerTable.Name FROM PlayerTable WHERE PlayerTable.Name = '%s'", usuario);		//Antes de aÃ±adir comprobamos que el nombre sea distinto y no haya duplicados
 			
 			pthread_mutex_lock(&mutex);
 			int err = mysql_query (conn, consulta); //Comprobamos que no haya duplicados
@@ -140,7 +140,7 @@ void *AtenderCliente (void *arguments)
 				
 				resultado = mysql_store_result (conn);	//Nos devuelve una tabla con todas las coincidencias
 				
-				rows = mysql_num_rows(resultado); //Comprobamos el número de filas que ha seleccionado (deberían ser cero)
+				rows = mysql_num_rows(resultado); //Comprobamos el nÃºmero de filas que ha seleccionado (deberÃ­an ser cero)
 				
 				if (rows > 0)	//Sigifica que alguien tiene el mismo nombre
 				{
@@ -149,23 +149,23 @@ void *AtenderCliente (void *arguments)
 				else
 				{
 					char orden[200];
-					sprintf(orden, "INSERT INTO PlayerTable (Name, Contra, GlobalPoints) VALUES ('%s','%s',0)", usuario,con);	//El ID se ha automatizado en la base de datos, sube solo por cada uno que añadas
+					sprintf(orden, "INSERT INTO PlayerTable (Name, Contra, GlobalPoints) VALUES ('%s','%s',0)", usuario,con);	//El ID se ha automatizado en la base de datos, sube solo por cada uno que aÃ±adas
 					
-					int err = mysql_query (conn, orden);	//Hacemos la orden de añadir el cliente
+					int err = mysql_query (conn, orden);	//Hacemos la orden de aÃ±adir el cliente
 					if (err != 0)
 					{
 						sprintf(respuesta, "1/Error al consultar: %u %s\n", mysql_errno(conn), mysql_error(conn));
 					}
 					else
-					{ sprintf(respuesta,"1/Usuario registrado correctamente, pruebe a iniciar sesión"); }
+					{ sprintf(respuesta,"1/Usuario registrado correctamente, pruebe a iniciar sesiÃ³n"); }
 				}
 				mysql_free_result(resultado);	//Liberamos el resultado
 			}
 			pthread_mutex_unlock(&mutex);
 		}
-		else if (codigo == 2)	//Inicio de sesión
+		else if (codigo == 2)	//Inicio de sesiÃ³n
 		{
-			char usuario[30];					//Nos quedamos con el usuario y la contraseña
+			char usuario[30];					//Nos quedamos con el usuario y la contraseÃ±a
 			char *pAyuda = strtok(data, "-");
 			strcpy(usuario, pAyuda);
 			char con[30];
@@ -190,15 +190,15 @@ void *AtenderCliente (void *arguments)
 				
 				resultado = mysql_store_result (conn);	//Nos devuelve una tabla con todas las coincidencias
 				
-				row = mysql_num_rows(resultado); //Comprobamos el número de filas que ha seleccionado (debería ser una)
-				if (row == 0)	//Si devuelve 0 filas, hubo algún error
-				{ sprintf(respuesta, "2/NO/Usuario o contraseña incorrectos"); }
+				row = mysql_num_rows(resultado); //Comprobamos el nÃºmero de filas que ha seleccionado (deberÃ­a ser una)
+				if (row == 0)	//Si devuelve 0 filas, hubo algÃºn error
+				{ sprintf(respuesta, "2/NO/Usuario o contraseÃ±a incorrectos"); }
 				else 	//Una fila
-				{ sprintf(respuesta, "2/Correcto/Inicio de sesión correcto"); }
+				{ sprintf(respuesta, "2/Correcto/Inicio de sesiÃ³n correcto"); }
 				
 				mysql_free_result(resultado);	//Liberamos el resultado
 			}
-			//A�adimos el usuario que acaba de hacer login a la lista de conectados
+			//Añadimos el usuario que acaba de hacer login a la lista de conectados
 			int res = PonConectado(&miListaConectados, usuario, sock_conn);
 			
 			
@@ -343,7 +343,7 @@ void *AtenderCliente (void *arguments)
 }
 
 int PonConectado (ListaConectados *lista, char nombre[20], int socket) {
-	//A�ade un nuevo conectado. 0 chill, -1 si llena y no pudo a�adir
+	//Añade un nuevo conectado. 0 chill, -1 si llena y no pudo añadir
 	if (lista->num == 100)
 	{ return -1; }
 	else
@@ -356,7 +356,7 @@ int PonConectado (ListaConectados *lista, char nombre[20], int socket) {
 }
 
 int DamePosicion (ListaConectados *lista, char nombre[20]) {
-	//Devuelve la posicion en la lista (0) o -1 si no lo encuentra. B�squeda
+	//Devuelve la posicion en la lista (0) o -1 si no lo encuentra. Búsqueda
 	int i = 0;
 	int encontrado = 0;
 	while((i<lista->num) && !encontrado)
@@ -393,7 +393,7 @@ int EliminaConectado (ListaConectados *lista, char nombre[20]){
 }
 
 void DameConectados (ListaConectados *lista, char conectados[300]){
-	//El vector de conectados viene vac�o del main y lo llena (Separados por /) y primero va el n�mero de conectados)
+	//El vector de conectados viene vacío del main y lo llena (Separados por /) y primero va el número de conectados)
 	//"3/Juan/Pepe/Pacheco"
 	sprintf(conectados,"%d", lista->num);	//Numero de conectados
 	for(int i = 0; i < lista->num; i++)
@@ -410,19 +410,19 @@ int main(int argc, char *argv[])
 	
 	MYSQL *conn;
 	
-	//Crear conexión al servidor MySQL
+	//Crear conexiÃ³n al servidor MySQL
 	conn = mysql_init(NULL);
 	if (conn == NULL)
 	{
-		printf("Error al crear conexión: %u %s\n", mysql_errno(conn), mysql_error(conn));
+		printf("Error al crear conexiÃ³n: %u %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
 	}
 	
 	//Conectampos con lo creado									Tabla
 	conn = mysql_real_connect(conn, "localhost","root","mysql","Zombie",0,NULL,0);
-	if (conn == NULL)	//Protección
+	if (conn == NULL)	//ProtecciÃ³n
 	{
-		printf("Error al iniciar la conexión: %u %s\n", mysql_errno(conn), mysql_error(conn));
+		printf("Error al iniciar la conexiÃ³n: %u %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
 	}
 	
