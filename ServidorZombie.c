@@ -319,9 +319,10 @@ void *AtenderCliente (void *arguments)
 		    }
 			pthread_mutex_unlock(&mutex);
 		}
-		else if (codigo == 6)	//Quiere conseguir la lista de conectados
+		///LA LISTA CONECTADOS se va a ir actualizando automáticamente para cada cliente
+		/*else if (codigo == 6)	//Quiere conseguir la lista de conectados
 		{
-			char listaConectadillos[300];
+			char listaConectadillos[300] = "";
 			
 			pthread_mutex_lock(&mutex); //Para que nadie toque la lista mientras nosotros la tocamos
 			DameConectados(&miListaConectados, listaConectadillos);
@@ -329,13 +330,33 @@ void *AtenderCliente (void *arguments)
 			
 			sprintf(respuesta, "6/%s", listaConectadillos);
 		}
-		//Escribimos la respuesta para el socket
+		//Escribimos la respuesta para el socket*/
 		if (codigo !=0)
 		{
 			printf ("Respuesta: %s\n", respuesta);	//Comprobar que todo chill
 			// Enviamos respuesta
 			write (sock_conn,respuesta,strlen(respuesta));
-		}			
+			
+		}
+		//Esta es la nueva lista conectados
+		if (codigo == 0 || codigo == 1 || codigo == 2)
+		{ 
+			char notificacion[300] = "";
+			char listaConectadillos[300] = "";
+			
+			pthread_mutex_lock(&mutex); //Para que nadie toque la lista mientras nosotros la tocamos
+			DameConectados(&miListaConectados, listaConectadillos);
+			
+			
+			sprintf(notificacion, "6/%s", listaConectadillos);
+			
+			int j;
+			for(j = 0; j < miListaConectados.num; j++)
+			{				//Para cada conectado, en su socket
+				write (miListaConectados.conectados[j].socket,notificacion,strlen(notificacion));
+			}
+			pthread_mutex_unlock(&mutex); //Ya pueden toquetear otros
+		}
 	}
 	// Se acabo el servicio para este cliente
 	close(sock_conn); 
@@ -343,7 +364,19 @@ void *AtenderCliente (void *arguments)
 }
 
 int PonConectado (ListaConectados *lista, char nombre[20], int socket) {
+<<<<<<< Updated upstream:ServidorZombie.c
 	//AÃ±ade un nuevo conectado. 0 chill, -1 si llena y no pudo aÃ±adir
+=======
+	//Añade un nuevo conectado. 0 chill, -1 si llena y no pudo añadir
+	/*int pos = DamePosicion(lista, nombre);
+	if (pos != -1)
+	{
+		// Si ya existe, actualizamos su socket por si es una nueva conexiÃ³n y salimos con Ã©xito
+		lista->conectados[pos].socket = socket;
+		return 0;
+	}*/
+	
+>>>>>>> Stashed changes:ServidorZombie-en pruebas no oficial.c
 	if (lista->num == 100)
 	{ return -1; }
 	else
