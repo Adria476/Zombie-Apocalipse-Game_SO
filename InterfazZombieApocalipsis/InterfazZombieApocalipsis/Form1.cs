@@ -20,6 +20,7 @@ namespace InterfazZombieApocalipsis
         // Encapsulará la función para hacer lo que yo quiero (la de PonRespuesta), debe tener mismos parámetros (L5.2 ejercicio guía)
         delegate void DelegadoParaEscribir(string mensaje);
         delegate void DelegadoParaConectados(string[] datosConectados);
+        delegate void DelegadoParaPartidas(string codigoPartida, string jugadorInvitado);
 
         const int PUERTO = 9080; // El puerto del servidor C
         IPAddress ip = IPAddress.Parse("127.0.0.1");    //Si no va, poned la que asigna la VirtualBox por defecto (192.168.56.101 o mirad con ip a)
@@ -32,6 +33,8 @@ namespace InterfazZombieApocalipsis
         string NombreCliente = "";
         bool ClienteSeHaRegistrado = false;
         Stack<string> StackConsultas = new Stack<string>();
+        //Lista de partidas para llevar el control de las partidas y los jugadores que hay en ellas
+        private List<Partidas> listaPartidas = new List<Partidas>();
 
         public InterfazForm()
         {
@@ -52,6 +55,7 @@ namespace InterfazZombieApocalipsis
         /// Función que se encarga de recibir TODAS las peticiones
         /// IMPORTANTE
 
+        //FUNCIONES IMPORTANTES DE LOS DELEGADOS PARA ESCRIBIR EN LA INTERFAZ (L5.2 ejercicio guía)
         public void PonRespuesta(string mensaje)
         {
             RespuestasServidorLabel.Text = mensaje;
@@ -66,6 +70,11 @@ namespace InterfazZombieApocalipsis
                 if (!string.IsNullOrWhiteSpace(nombreLimpio))
                     ConectadosListBox.Items.Add(nombreLimpio);
             }
+        }
+
+        public void PonPartidas(string codigoPartida, string jugadorInvitado)
+        {
+            ConfigurarTablaPartidas(codigoPartida, jugadorInvitado);
         }
 
         private void AtenderServidor()
@@ -102,7 +111,7 @@ namespace InterfazZombieApocalipsis
 
                         switch (codigo)
                         {
-                            case 1: //Respuesta de registro
+                            case 1: //Respuesta de registro  --  "1/Usuario registrado correctamente, pruebe a iniciar sesiÃ³n"
                                 mensaje = partes[1].Split('\0')[0];
                                 string resultadoRegistro = "Respuesta de registro: " + mensaje;
 
@@ -110,14 +119,14 @@ namespace InterfazZombieApocalipsis
                                 RespuestasServidorLabel.Invoke(delegado, new object[] { resultadoRegistro });
                                 ClienteSeHaRegistrado = true;
                                 break;
-                            case 2: //Respuesta de inicio de sesión
+                            case 2: //Respuesta de inicio de sesión  --  "2/Correcto/Inicio de sesiÃ³n correcto"
                                 mensaje = partes[1].Split('\0')[0];
                                 string resultadoInicioSesion = "Respuesta de inicio de sesión: " + mensaje;
 
                                 //Invocamos al delegado para que lo escriba él
                                 RespuestasServidorLabel.Invoke(delegado, new object[] { resultadoInicioSesion });
                                 break;
-                            case 3: //Respuesta de consulta de pistola
+                            case 3: //Respuesta de consulta de pistola -- "3/SI/Pistola encontrada."
                                 mensaje = partes[2].Split('\0')[0];
                                 string resultadoPistola = "Tiene pistola? " + mensaje + " Consulta Pistola";
                                 //MessageBox.Show(mensaje, "Consulta Pistola", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -126,7 +135,7 @@ namespace InterfazZombieApocalipsis
                                 RespuestasServidorLabel.Invoke(delegado, new object[] { resultadoPistola });
                                 break;
 
-                            case 4: //Respuesta de consulta de número de jugadores
+                            case 4: //Respuesta de consulta de número de jugadores  --  "4/%s"
                                 mensaje = partes[1].Split('\0')[0];
                                 string resultadoJugadoresPartida = "Número de jugadores: " + mensaje + " Consulta Jugadores";
                                 //MessageBox.Show("Número de jugadores: " + mensaje, "Consulta Jugadores", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -135,7 +144,7 @@ namespace InterfazZombieApocalipsis
                                 RespuestasServidorLabel.Invoke(delegado, new object[] { resultadoJugadoresPartida });
                                 break;
 
-                            case 5: //Respuesta de consulta de jugador con más tiempo
+                            case 5: //Respuesta de consulta de jugador con más tiempo  --  "5/%s-%s"
                                 mensaje = partes[1].Split('\0')[0];
                                 string resultadoJugadorLongevo = "Jugador con más tiempo: " + mensaje + " Consulta Superviviente";
                                 //MessageBox.Show("Jugador con más tiempo: " + mensaje, "Consulta Superviviente", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -143,10 +152,49 @@ namespace InterfazZombieApocalipsis
                                 //Invocamos al delegado para que lo escriba él
                                 RespuestasServidorLabel.Invoke(delegado, new object[] { resultadoJugadorLongevo });
                                 break;
-                            case 6: //Respuesta de la lista de conectados (debe actualizarse SIEMPRE)
+                            case 6: //Respuesta de la lista de conectados (debe actualizarse SIEMPRE)  --  "6/%s"
 
                                 DelegadoParaConectados delegadoConectados = new DelegadoParaConectados(PonConectados);
                                 ConectadosListBox.Invoke(delegadoConectados, new object[] { partes });
+                                break;
+                            case 7: //Respuesta de invitación a la partida  --  "7/codigoPartida/usuarioInvitado/resultado" (resultado es "Aceptado" o "Rechazado")
+                                string JugadorInvitado = partes[2].Split('\0')[0];
+                                string codigoPartida = partes[1].Split('\0')[0];
+
+                                if (partes.Length == 4)
+                                {
+                                    if (partes[3] == "Aceptado")
+                                    {
+                                        //Delegado para actualizar la lista de partidas en la interfaz
+                                        DelegadoParaPartidas delegadoPartidas = new DelegadoParaPartidas(PonPartidas);
+                                        this.Invoke(delegadoPartidas, new object[] { codigoPartida, JugadorInvitado });
+                                    }
+                                    else if (partes[3] == "Rechazado")
+                                    {
+                                        Console.WriteLine("El jugador " + partes[2] + " ha rechazado la invitación.");
+                                    }
+                                }
+                                else
+                                { Console.WriteLine("Respuesta inesperada del servidor: " + respuesta); }
+                                break;
+                            case 8: // El servidor nos avisa que hemos entrado a una partida como invitados
+                                    // Formato esperado del servidor: "8/codigoPartida/nombreAnfitrion/nombreInvitado"
+
+                                //ESTE CASO HAY QUE REVISARLO
+                                string codigoPartidaInv = partes[1].Split('\0')[0];
+                                string anfitrion = partes[2].Split('\0')[0];
+                                string miNombreInvitado = partes[3].Split('\0')[0];
+
+                                // Usamos el delegado para actualizar la UI de forma segura desde el hilo de red
+                                if (this.InvokeRequired)
+                                {
+                                    DelegadoParaPartidas delegadoPartidas = new DelegadoParaPartidas(PonPartidas);
+                                    this.Invoke(delegadoPartidas, new object[] { codigoPartidaInv, miNombreInvitado });
+                                }
+                                else
+                                {
+                                    ConfigurarTablaPartidas(codigoPartidaInv, miNombreInvitado);
+                                }
                                 break;
                         }
                     }
@@ -292,7 +340,6 @@ namespace InterfazZombieApocalipsis
             }
         }
 
-        // No acabado
         private void InivitarButton_Click(object sender, EventArgs e)
         {
             string JugadorInvitado = Convert.ToString(ConectadosListBox.SelectedItem);
@@ -307,28 +354,7 @@ namespace InterfazZombieApocalipsis
                 string peticion = "7/" + JugadorInvitado;
                 server.Send(Encoding.ASCII.GetBytes(peticion));
 
-                byte[] buffer = new byte[512];
-                int n = server.Receive(buffer);
-                string respuesta = Encoding.ASCII.GetString(buffer, 0, n);
-
-                //La respuesta del servidor C será 7/codigoPartida/usuario-invitado/resultado, donde resultado puede ser "Aceptado" o "Rechazado"
-                string[] partes = respuesta.Split('/');
-                if (partes.Length == 4)
-                {
-                    if (partes[3] == "Aceptado")
-                    {
-                        ConfigurarTablaPartidas(partes[1], JugadorInvitado);
-                    }
-                    else if (partes[2] == "Rechazado")
-                    {
-                        Console.WriteLine("El jugador " + partes[2] + " ha rechazado la invitación.");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("Respuesta inesperada del servidor: " + respuesta);
-                }
-
+                // La respuesta del servidor C se recibirá en el hilo de atenderServidor y se procesará allí, actualizando la lista de partidas si es necesario.
             }
             catch (Exception ex)
             {
@@ -336,107 +362,132 @@ namespace InterfazZombieApocalipsis
             }
         }
 
-        //No acabado
-        private int ConfigurarTablaPartidas(string codigoPartida, string JugadorInvitado)
+        private void ConfigurarTablaPartidas(string codigoPartida, string JugadorInvitado)
         {
-            int numJugadores = 0;
-            string[] AnterioresJugadoresInvitados = new string[100];
-
-            int indicePartida = -1;
+            //int indicePartida = -1; //Inútil porque ya sabemos el código con la clase Partidas, pero lo dejo por si acaso
             bool encontrado = false;
             
+            Partidas partidaActual = null;
+            
+
             if (PartidasListBox.Items.Count == 0)
             {
+                partidaActual = new Partidas(codigoPartida); //Establecemos el código de la partida
+                partidaActual.AgregarJugador(NombreCliente, codigoPartida); //Añadimos al jugador que invita a la partida
+                //Si no hay ninguna partida, añadimos la primera con el jugador que invita y el invitado
                 if (!string.IsNullOrWhiteSpace(JugadorInvitado))
                 {
-                    string PartidaText = $"{NombreCliente} ha invitado a {JugadorInvitado} a la partida {codigoPartida}.";
-                    numJugadores = 2; // Contamos al jugador que invita y al invitado
-                    PartidasListBox.Items.Add(PartidaText);
+                    partidaActual.AgregarJugador(JugadorInvitado, codigoPartida); //Añadimos al jugador invitado a la partida
                 }
-                return numJugadores;
+                listaPartidas.Add(partidaActual); // Añadimos la partida a la lista de partidas
             }
             else
             {
+                //Si sí hay partidas, buscamos si ya existe la partida con el código dado
                 int i = 0;
-                while (!encontrado && PartidasListBox.Items.Count > i)
+                while (!encontrado && listaPartidas.Count > i)
                 {
-                    if (PartidasListBox.Items[i].ToString().Contains(codigoPartida))
+                    if (listaPartidas[i].GetCodigoPartida() == codigoPartida)
                     {
                         encontrado = true;
-                        indicePartida = i;
-                        AnterioresJugadoresInvitados = PartidasListBox.Items[i].ToString().Split(new string[] { " y " }, StringSplitOptions.None);
+                        partidaActual = listaPartidas[i]; // Obtenemos la partida existente y añadimos jugador
+                        partidaActual.AgregarJugador(JugadorInvitado, codigoPartida);
                     }
                     else
-                    {
-                        i++;
-                    }
+                    { i++; }
                 }
-                if (indicePartida > -1)
+                if (!encontrado)
                 {
-                    for (int j = 0; j < numJugadores; j++)
+                    partidaActual = new Partidas(codigoPartida);
+                    partidaActual.AgregarJugador(NombreCliente, codigoPartida);
+                    //Si no se encontró la partida, la añadimos a la lista de partidas
+                    if (!string.IsNullOrWhiteSpace(JugadorInvitado))
                     {
-                        
+                        partidaActual.AgregarJugador(JugadorInvitado, codigoPartida);
                     }
-                    numJugadores++;
+                    listaPartidas.Add(partidaActual);
                 }
+            }
+            ActualizarListaPartidas(); // Actualizamos la lista de partidas en la interfaz
+        }
+        private void ActualizarListaPartidas()
+        {
+            PartidasListBox.Items.Clear();
+            foreach (Partidas partida in listaPartidas)
+            {
+                // Creamos un string con el código de la partida y los jugadores que hay en ella
+                string jugadores = string.Join(", ", partida.GetJugadores());
+                string textoPartida = $"Código: {partida.GetCodigoPartida()} | Jugadores: {jugadores}";
 
-                
-
-                for (int k = 0; k < PartidasListBox.Items.Count; k++)
-                {
-                    string itemText = PartidasListBox.Items[k].ToString();
-                    if (itemText.Contains(codigoPartida))
-                    {
-
-                    }
-                }
-
-                if (indicePartida != -1 && indicePartida < PartidasListBox.Items.Count)
-                {
-                    // Modificas directamente el contenido de esa línea
-                    PartidasListBox.Items[indicePartida] = $"{NombreCliente}, {JugadorInvitado} y NuevoJugador están en la partida.";
-                }
-
-                return numJugadores;
+                PartidasListBox.Items.Add(textoPartida);
             }
         }
 
-        // Pone a los jugadores de dentro de la partida en posiciones al azar del tablero
+        // Pone a los jugadores de dentro de la partida en posiciones al azar del tablero --ESTO DEBE HACERLO EL SERVIDOR
+        // ESTO DEBE HACERLO EL SERVIDOR
         private void IniciarPartidaButton_Click(object sender, EventArgs e)
         {
-            int playerNumber = ContarJugadoresPartidaIniciada();   //Aquí se obtiene el número de jugadores en el lobby
-            Console.WriteLine("Número de jugadores en el lobby: " + playerNumber);
-            if (partidaIniciada == false && playerNumber > 1)
+            string codigoPartida = PartidaTextBox.Text.Trim(); // Aquí deberías obtener el código de la partida que quieres iniciar con un textbox
+
+            Partidas partidaActual = EncontrarPartida(codigoPartida);   //Obtener partida que se juega
+            if(partidaActual == null)
             {
-                int zombieX = randomNumber.Next(0, TableroDataGridView.ColumnCount);
-                int zombieY = randomNumber.Next(0, TableroDataGridView.RowCount);
-
-                TableroDataGridView.Rows[zombieY].Cells[zombieX].Value = "Z";
-
-                for (int i = 0; i < playerNumber; i++)
-                {
-                    int playerX = randomNumber.Next(0, TableroDataGridView.ColumnCount);
-                    int playerY = randomNumber.Next(0, TableroDataGridView.RowCount);
-                    while (TableroDataGridView.Rows[playerY].Cells[playerX].Value != null)
-                    {
-                        playerX = randomNumber.Next(0, TableroDataGridView.ColumnCount);
-                        playerY = randomNumber.Next(0, TableroDataGridView.RowCount);
-                    }
-                    List<int> posicionJugador = new List<int> { playerX, playerY };
-                    PosicionJugadores.Add(posicionJugador);
-                    TableroDataGridView.Rows[playerY].Cells[playerX].Value = NombreCliente[0];
-                }
-                partidaIniciada = true;
+                MessageBox.Show("No se encontró la partida con el código proporcionado.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
             else
             {
-                MessageBox.Show("No se puede iniciar la partida. Asegúrese de que haya al menos 2 jugadores en el lobby.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                int playerNumber = partidaActual.GetNumJugadores(codigoPartida);
+                List<string> Jugadores = partidaActual.GetJugadores();
+                //Console.WriteLine("Número de jugadores en el lobby: " + playerNumber);
+                if ((partidaIniciada == false && playerNumber > 1) && Jugadores[0] == NombreCliente)
+                {
+                    int zombieX = randomNumber.Next(0, TableroDataGridView.ColumnCount);
+                    int zombieY = randomNumber.Next(0, TableroDataGridView.RowCount);
+
+                    TableroDataGridView.Rows[zombieY].Cells[zombieX].Value = "Z";
+
+                    for (int i = 0; i < playerNumber; i++)
+                    {
+                        int playerX = randomNumber.Next(0, TableroDataGridView.ColumnCount);
+                        int playerY = randomNumber.Next(0, TableroDataGridView.RowCount);
+                        while (TableroDataGridView.Rows[playerY].Cells[playerX].Value != null)
+                        {
+                            playerX = randomNumber.Next(0, TableroDataGridView.ColumnCount);
+                            playerY = randomNumber.Next(0, TableroDataGridView.RowCount);
+                        }
+                        List<int> posicionJugador = new List<int> { playerX, playerY };
+                        PosicionJugadores.Add(posicionJugador);
+                        TableroDataGridView.Rows[playerY].Cells[playerX].Value = Jugadores[i][0];   //Los spawneamos escribiendo la primera letra de su nombre en la casilla
+                    }
+                    partidaIniciada = true;
+                }
+                else
+                {
+                    MessageBox.Show("No se puede iniciar la partida. Asegúrese de que haya al menos 2 jugadores en el lobby.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
-        //No acabado (no sé lo que quería hacer en SO) -Adrià
-        private int ContarJugadoresPartidaIniciada()
+
+        // Método para contar el número de jugadores en una partida específica y saber si es posible iniciarla o no
+        private Partidas EncontrarPartida(string codigoPartida)
         {
-            return 1;
+            bool encontrado = false;
+            int i = 0;
+            while (!encontrado && listaPartidas.Count > i)
+            {
+                if (listaPartidas[i].GetCodigoPartida() == codigoPartida)
+                {
+                    encontrado = true;
+                }
+                else
+                { i++; }
+            }
+            if (encontrado)
+            {
+                return listaPartidas[i];
+            }
+            return null;
         }
 
         //Para mover el jugador
@@ -557,6 +608,70 @@ namespace InterfazZombieApocalipsis
             {
                 MessageBox.Show("Error al conectar: " + ex.Message, "Error de red");
             }
+        }
+    }
+    
+    //Clase de partidas para llevar el control de las partidas y los jugadores que hay en ellas
+    public class Partidas
+    {
+        //Atributos de la clase
+        public string CodigoPartida;
+        public List<string> Jugadores;
+        public int numJugadores;
+
+        //Constructor de la clase
+        public Partidas(string codigoPartida)
+        {
+            CodigoPartida = codigoPartida;
+            Jugadores = new List<string>();
+            numJugadores = 0;
+        }
+
+        //Métodos de la clase
+        public void AgregarJugador(string jugador, string codigo)
+        {
+            if ((jugador != null && !Jugadores.Contains(jugador)) && codigo == this.CodigoPartida)
+            {
+                this.Jugadores.Add(jugador);
+                this.numJugadores++;  // Incrementamos el número de jugadores al agregar uno nuevo
+            }
+        }
+
+        public void EliminarJugador(string jugador, string codigo)
+        {
+            if ((jugador != null && Jugadores.Contains(jugador)) && codigo == this.CodigoPartida)
+            {
+                this.Jugadores.Remove(jugador);
+                this.numJugadores--;  // Decrementamos el número de jugadores al eliminar uno
+            }
+        }
+
+        //Getters
+        public List<string> GetJugadores()
+        {
+            return this.Jugadores;
+        }
+
+        public int GetNumJugadores(string code)
+        {
+            if (code == this.CodigoPartida)
+            {
+                return this.numJugadores;
+            }
+            else
+            {
+                return -1; // Si el código no coincide, devolvemos -1
+            }
+        }
+
+        public string GetCodigoPartida()
+        {
+            return this.CodigoPartida;
+        }
+        //Setters
+        public void SetCodigoPartida(string codigo)
+        {
+            this.CodigoPartida = codigo;
         }
     }
 }
